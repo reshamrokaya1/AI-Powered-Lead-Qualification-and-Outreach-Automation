@@ -1,0 +1,758 @@
+{
+  "name": "AI-Powered Lead Qualification and Outreach Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "minBudget",
+              "value": 3000,
+              "type": "number"
+            },
+            {
+              "id": "id-2",
+              "name": "teamEmail",
+              "value": "edgesolutionai@gmail.com",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "yourName",
+              "value": "Edge Solution",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "49954fa4-b379-447f-b523-80d1c5df76c7",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2624,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "lead_name",
+              "value": "={{ $json['Full Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "lead_email",
+              "value": "={{ $json['Email Address'] }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "lead_company",
+              "value": "={{ $json['Company Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "lead_role",
+              "value": "={{ $json['Your Role'] }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "lead_budget",
+              "value": "={{ $json['Budget (USD)'] }}",
+              "type": "number"
+            },
+            {
+              "id": "id-6",
+              "name": "lead_source",
+              "value": "={{ $json['How did you hear about us?'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "3f59477a-ee7b-4fac-b78c-fb134489b7a7",
+      "name": "Normalize Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2160,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Normalize Lead Data').item.json.lead_email }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ $('Normalize Lead Data').item.json.lead_email }}",
+              "rightValue": "@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-3",
+              "leftValue": "={{ $('Normalize Lead Data').item.json.lead_company }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1938b2d5-506f-4887-8fbd-08e5211d6e74",
+      "name": "Validate Lead Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1936,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Evaluate this lead data: {{ $json }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a lead qualification assistant. Evaluate the provided lead and respond ONLY in JSON format.\n\nCriteria:\n- Budget >= $3000\n- Company is legitimate\n- Likely to need AI automation services\n\nLead Data:\n{{ JSON.stringify($json) }}\n\nRespond in this exact format:\n{\n  \"qualified\": \"true/false\",\n  \"reason\": \"short explanation\",\n}"
+        }
+      },
+      "id": "58f7dd88-49d0-451d-82e0-77b4ddb50512",
+      "name": "AI Lead Qualifier",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1488,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "ad2916e2-798e-4cf1-9d02-e3eb1bf6cff0",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1488,
+        400
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "mk9Eixd02SzUc448",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"qualified\": {\n      \"type\": \"boolean\",\n      \"description\": \"Whether the lead is qualified\"\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"description\": \"Explanation for qualification decision\"\n    },\n    \"confidence\": {\n      \"type\": \"string\",\n      \"description\": \"Confidence level: high, medium, or low\"\n    }\n  }\n}"
+      },
+      "id": "587c58f7-2e2a-48b8-b072-97343a078ccc",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1360,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.output.qualified }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "20339a5f-f5a3-428c-b456-8accc8116cbb",
+      "name": "Route by Qualification",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1008,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Workflow Configuration').item.json['Email Address'] }}",
+        "subject": "=Quick question about {{ $('Workflow Configuration').item.json['Company Name'] }}",
+        "message": "=Hi {{ $('Workflow Configuration').item.json['Full Name'] }},<br><br>I came across your request and noticed you're looking for solutions around AI automation.<br><br>We help companies like {{ $('Workflow Configuration').item.json['Company Name'] }} automate lead handling, operations, and workflows.<br><br>Would you be open to a quick 15-minute call?<br><br>Best,<br>{{ $('Workflow Configuration').first().json.yourName }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "65002779-8efb-416f-adfa-9eb02e1c215a",
+      "name": "Send Email to Lead",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -704,
+        80
+      ],
+      "webhookId": "d3125c0d-73e2-4339-add4-ba3ac1c2e3b0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "TkK9XpgkM9Cf5hLA",
+          "name": "Ai test"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Workflow Configuration').first().json.teamEmail }}",
+        "subject": "=🔥 New Qualified Lead: {{ $('Workflow Configuration').item.json['Company Name'] }}",
+        "message": "=<strong>New qualified lead received:</strong><br><br><strong>Name:</strong> {{ $('Workflow Configuration').item.json['Full Name'] }} <br><strong>Email:</strong> {{ $('Workflow Configuration').item.json['Email Address'] }} <br><strong>Company:</strong>{{ $('Workflow Configuration').item.json['Company Name'] }}<br><strong>Role:</strong>{{ $('Lead Capture Form').item.json['Your Role'] }}<br><strong>Budget:</strong> ${{ $('Lead Capture Form').item.json['Budget (USD)'] }}<br><strong>Source:</strong> {{ $('Lead Capture Form').item.json['How did you hear about us?'] }}<br><strong>Qualification:</strong>{{ $('AI Lead Qualifier').item.json.output.qualified }}",
+        "options": {}
+      },
+      "id": "06f30175-3855-4b04-9f8f-e294176cb842",
+      "name": "Notify Team",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -480,
+        80
+      ],
+      "webhookId": "412d7977-f03f-48cc-b190-5e321ec27dd5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "TkK9XpgkM9Cf5hLA",
+          "name": "Ai test"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FMgy-usVBzWHGrI-f_4jpl15URz1Y9-vtGwiQw_oxVw",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Appointments",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Lead Capture Form').item.json['Full Name'] }}",
+            "Company": "={{ $('Lead Capture Form').item.json['Company Name'] }}",
+            "Email": "={{ $('Lead Capture Form').item.json['Email Address'] }}",
+            "Role": "={{ $('Lead Capture Form').item.json['Your Role'] }}",
+            "Budget": "={{ $('Lead Capture Form').item.json['Budget (USD)'] }}",
+            "Source": "={{ $('Lead Capture Form').item.json['How did you hear about us?'] }}",
+            "Status": "={{ $('AI Lead Qualifier').item.json.output.qualified }}"
+          },
+          "matchingColumns": [
+            "Name"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "11a4a592-717c-48f7-8b16-734b87cf484f",
+      "name": "Save Qualified Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -256,
+        80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2LTgfWJEIBWkedqL",
+          "name": "EdgeSolution"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FMgy-usVBzWHGrI-f_4jpl15URz1Y9-vtGwiQw_oxVw",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "UnQualified Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Company": "={{ $('Lead Capture Form').item.json['Company Name'] }}",
+            "Email": "={{ $('Lead Capture Form').item.json['Email Address'] }}",
+            "Name": "={{ $('Lead Capture Form').item.json['Full Name'] }}",
+            "Role": "={{ $('Lead Capture Form').item.json['Your Role'] }}",
+            "Budget": "={{ $('Lead Capture Form').item.json['Budget (USD)'] }}",
+            "Source": "={{ $('Lead Capture Form').item.json['How did you hear about us?'] }}",
+            "Status": "={{ $('AI Lead Qualifier').item.json.output }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "60f4b9ab-8135-4792-92dc-fd7bfc5ecd5a",
+      "name": "Save Unqualified Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -704,
+        272
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2LTgfWJEIBWkedqL",
+          "name": "EdgeSolution"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Lead Qualification Form",
+        "formDescription": "Tell us about your business needs and we'll get back to you shortly.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email Address",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Company Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Your Role",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Budget (USD)",
+              "fieldType": "number",
+              "placeholder": "$3,000+"
+            },
+            {
+              "fieldLabel": "How did you hear about us?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Google Ads"
+                  },
+                  {
+                    "option": "LinkedIn"
+                  },
+                  {
+                    "option": "Referral"
+                  },
+                  {
+                    "option": "Website"
+                  },
+                  {
+                    "option": "Other"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Thank you! We'll review your information and get back to you within 24 hours."
+            }
+          }
+        }
+      },
+      "id": "719c19fb-78b4-445b-80f3-b6523c87b679",
+      "name": "Lead Capture Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -3088,
+        176
+      ],
+      "webhookId": "d98f0c95-dd52-4f37-b352-3b7e72dd084f"
+    },
+    {
+      "parameters": {
+        "content": "## Main Trigger\n\nIt is main point from which the Lead comes.\nIt may either from Form, Webhook or CRM.\nBasically it is the place where we get all the information about the Lead and qualify them accordingly",
+        "height": 320,
+        "width": 416
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -3248,
+        16
+      ],
+      "typeVersion": 1,
+      "id": "4305fca2-9b62-4d74-9338-35af22836259",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Qualification Section\n\nHere we set the criteria for the Lead if they qualifies for the next round or not.",
+        "height": 320,
+        "width": 432
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2800,
+        16
+      ],
+      "typeVersion": 1,
+      "id": "4337c5bf-4ab9-49e5-a5d0-1514c977a6f6",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Lead Data": {
+      "main": [
+        [
+          {
+            "node": "AI Lead Qualifier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Lead Qualifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Lead Qualifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Lead Qualifier",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Lead Qualifier": {
+      "main": [
+        [
+          {
+            "node": "Route by Qualification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Qualification": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Unqualified Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email to Lead": {
+      "main": [
+        [
+          {
+            "node": "Notify Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Team": {
+      "main": [
+        [
+          {
+            "node": "Save Qualified Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Capture Form": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "69e98fc1-73e0-4ffe-aa98-403f3a3987d1",
+  "meta": {
+    "instanceId": "894facee3eee677dc263cd80e9c3dd2f0c4b5134c14f8c2854c77b63e7342c97"
+  },
+  "id": "1F6OoiyQJ0X8sLYK",
+  "tags": []
+}
